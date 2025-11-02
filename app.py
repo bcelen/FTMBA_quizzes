@@ -10,8 +10,8 @@ st.set_page_config(page_title="Weekly Quiz Results Dashboard", layout="wide")
 st.title("📊 Weekly Quiz Results Dashboard")
 
 # --- User Input ---
-week_labels = [f"Week {i} Quiz results" for i in range(1, 7)]
-week_files = [f"week{i}.csv" for i in range(1, 7)]
+week_labels = [f"Week {i} Quiz results" for i in range(1, 8)]
+week_files = [f"week{i}.csv" for i in range(1, 8)]
 
 with st.container():
     col1, col2, col3 = st.columns([2, 2, 3])
@@ -20,14 +20,14 @@ with st.container():
     with col2:
         target_mean = st.slider(
             "🧮 Adjusted Average",
-            min_value=7.4, max_value=7.6, value=7.5, step=0.01,
+            min_value=3.7, max_value=3.8, value=3.75, step=0.01,
             help="This sets the average of the adjusted marks to meet MBS grading policy."
         )
     with col3:
-        target_pct_above_8 = st.slider(
-            "🎯 Maximum percentage of adjusted marks above 8",
+        target_pct_above_4 = st.slider(
+            "🎯 Maximum percentage of adjusted marks above 4",
             min_value=0.20, max_value=0.30, value=0.30, step=0.01,
-            help="Adjusts standard deviation to ensure at most this percentage of adjusted marks are 8.0 or higher."
+            help="Adjusts standard deviation to ensure at most this percentage of adjusted marks are 4.0 or higher."
         )
 
 st.markdown(
@@ -49,16 +49,16 @@ try:
     original_marks = df.iloc[:, 0].dropna()
     original_marks = pd.to_numeric(original_marks, errors='coerce')
     original_marks = original_marks.dropna()
-    original_marks = np.clip(original_marks.values, 0, 10)
+    original_marks = np.clip(original_marks.values, 0, 5)
 
     # --- Compute Z Scores ---
     z_scores = (original_marks - np.mean(original_marks)) / np.std(original_marks)
 
-    # --- Find std dev to cap % > 8 at user-specified level ---
-    z_threshold = norm.ppf(1 - target_pct_above_8)
-    required_std = (8 - target_mean) / z_threshold
+    # --- Find std dev to cap % > 4 at user-specified level ---
+    z_threshold = norm.ppf(1 - target_pct_above_4)
+    required_std = (4 - target_mean) / z_threshold
 
-    adjusted_marks = np.clip(z_scores * required_std + target_mean, 0, 10)
+    adjusted_marks = np.clip(z_scores * required_std + target_mean, 0, 5)
 
     # --- Sort by original marks ---
     sorted_indices = np.argsort(original_marks)
@@ -92,15 +92,15 @@ try:
             input_col, result_col = st.columns(2)
             with input_col:
                 user_mark = st.number_input(
-                    "Enter your original quiz mark (0-10):",
-                    min_value=0.0, max_value=10.0, step=0.1,
+                    "Enter your original quiz mark (0-5):",
+                    min_value=0.0, max_value=5.0, step=0.1,
                     help="Enter the mark you received to find your adjusted mark and ranking."
                 )
             submitted = st.form_submit_button("Find My Adjusted Mark")
 
         if submitted:
             user_z = (user_mark - np.mean(original_marks)) / np.std(original_marks)
-            user_adjusted = round(np.clip(user_z * required_std + target_mean, 0, 10), 2)
+            user_adjusted = round(np.clip(user_z * required_std + target_mean, 0, 5), 2)
             rank = int(np.sum(adjusted_marks > user_adjusted)) + 1
             total = len(adjusted_marks)
 
@@ -115,7 +115,7 @@ try:
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.plot(range(len(original_sorted)), original_sorted, marker='o', linestyle='-', label='Original', color='#FF6B6B')
     ax.plot(range(len(adjusted_sorted)), adjusted_sorted, marker='o', linestyle='-', label='Adjusted', color='#4D96FF')
-    ax.set_ylim(0, 10)
+    ax.set_ylim(0, 5)
     ax.set_xlabel("Student Index")
     ax.set_ylabel("Mark")
     ax.set_title("Distribution of Marks (Original vs Adjusted)")
