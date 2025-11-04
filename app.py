@@ -15,11 +15,13 @@ with col1:
     week_file = f"week{week_option.split()[1]}.csv"
 
 with col2:
-    target_mean = st.slider("🎯 Adjusted Average", min_value=3.7, max_value=3.8, value=3.75, step=0.01)
+    target_mean = st.slider("🎯 Adjusted Average", min_value=3.7, max_value=3.8, value=3.75, step=0.01,
+                             help="Set the target average of adjusted marks")
 
 with col3:
     target_pct_above_4 = st.slider("🔝 Maximum percentage of adjusted marks above 4", min_value=20, max_value=30,
-                                   value=30, step=1) / 100
+                                    value=30, step=1,
+                                    help="Maximum allowed percentage of adjusted marks ≥ 4") / 100
 
 # --- Policy Description ---
 st.markdown("""
@@ -47,6 +49,7 @@ if quiz_df is None:
 
 # --- Clean and Extract Marks ---
 original_marks = quiz_df.iloc[:, 0].astype(str).str.replace(',', '.').astype(float)
+
 mean_orig = np.mean(original_marks)
 std_orig = np.std(original_marks)
 z_scores = (original_marks - mean_orig) / std_orig
@@ -69,7 +72,6 @@ with col_summ:
     st.markdown("### 📋 Summary")
     st.table(summary_df)
 
-student_idx = None
 student_mark = None
 adjusted_student_mark = None
 
@@ -92,11 +94,10 @@ fig, ax = plt.subplots(figsize=(12, 5))
 ax.plot(sorted_original, label="Original Marks", marker='o', linestyle='-', color='#2c7bb6')
 ax.plot(sorted_adjusted, label="Adjusted Marks", marker='o', linestyle='--', color='#fdae61')
 
-# Highlight student's marks
+# Highlight student's marks with horizontal lines
 if student_mark is not None:
-    idx = (np.abs(sorted_original - student_mark)).idxmin()
-    ax.scatter(idx, sorted_original[idx], color='#084594', edgecolor='black', s=120, label="Your Original Mark")
-    ax.scatter(idx, sorted_adjusted[idx], color='#f46d43', edgecolor='black', s=120, label="Your Adjusted Mark")
+    ax.axhline(y=student_mark, color='#084594', linestyle='-', linewidth=2, label="Your Original Mark")
+    ax.axhline(y=adjusted_student_mark, color='#f46d43', linestyle='--', linewidth=2, label="Your Adjusted Mark")
 
 ax.set_ylabel("Mark (0–5)")
 ax.set_xlabel("Student Index")
