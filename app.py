@@ -15,17 +15,15 @@ with col1:
     week_file = f"week{week_option.split()[1]}.csv"
 
 with col2:
-    target_mean = st.slider("🎯 Adjusted Average", min_value=3.7, max_value=3.8, value=3.75, step=0.01,
-                             help="Set the target average of adjusted marks")
+    target_mean = st.slider("🎯 Adjusted Average", min_value=3.7, max_value=3.8, value=3.75, step=0.01)
 
 with col3:
     target_pct_above_4 = st.slider("🔝 Maximum percentage of adjusted marks above 4", min_value=20, max_value=30,
-                                    value=30, step=1,
-                                    help="Maximum allowed percentage of adjusted marks ≥ 4") / 100
+                                   value=30, step=1) / 100
 
 # --- Policy Description ---
 st.markdown("""
-MBS grade policy requires that the mean of the final marks (over 100) be between 74 and 76 and that the scores corresponding to H1 do not exceed 30%.  
+MBS grade policy requires that the mean of the final marks (over 100) be between 74 and 76 (3.70 and 3.80 out of 5) and that the scores corresponding to H1 (4 out of 5) do not exceed 30%.  
 The adjustment takes these criteria into account and adjusts marks while preserving the original z-scores.  
 
 ⚠️ *Please note that although these distributions are indicative, they may change at the end of the subject because there are some zero marks which may change after the consensus date.*
@@ -49,7 +47,6 @@ if quiz_df is None:
 
 # --- Clean and Extract Marks ---
 original_marks = quiz_df.iloc[:, 0].astype(str).str.replace(',', '.').astype(float)
-
 mean_orig = np.mean(original_marks)
 std_orig = np.std(original_marks)
 z_scores = (original_marks - mean_orig) / std_orig
@@ -72,6 +69,10 @@ with col_summ:
     st.markdown("### 📋 Summary")
     st.table(summary_df)
 
+student_idx = None
+student_mark = None
+adjusted_student_mark = None
+
 with col_rank:
     st.markdown("### 🔍 Find Your Adjusted Mark and Rank")
     student_mark = st.number_input("Enter your original quiz mark", min_value=0.0, max_value=5.0, step=0.01)
@@ -90,6 +91,13 @@ sorted_adjusted = adjusted_marks[sorted_indices]
 fig, ax = plt.subplots(figsize=(12, 5))
 ax.plot(sorted_original, label="Original Marks", marker='o', linestyle='-', color='#2c7bb6')
 ax.plot(sorted_adjusted, label="Adjusted Marks", marker='o', linestyle='--', color='#fdae61')
+
+# Highlight student's marks
+if student_mark is not None:
+    idx = (np.abs(sorted_original - student_mark)).idxmin()
+    ax.scatter(idx, sorted_original[idx], color='#084594', edgecolor='black', s=120, label="Your Original Mark")
+    ax.scatter(idx, sorted_adjusted[idx], color='#f46d43', edgecolor='black', s=120, label="Your Adjusted Mark")
+
 ax.set_ylabel("Mark (0–5)")
 ax.set_xlabel("Student Index")
 ax.set_title("Distribution of Marks (Original vs Adjusted)")
