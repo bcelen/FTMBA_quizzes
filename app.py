@@ -70,7 +70,14 @@ col_summ, col_rank = st.columns(2)
 
 with col_summ:
     st.markdown("### 📋 Summary")
-    st.markdown(summary_df.to_html(index=False), unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div style='width:100%; overflow-x:auto;'>
+            {summary_df.to_html(index=False, justify='center')}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 with col_rank:
     st.markdown("### 🔍 Find Your Adjusted Mark and Rank")
