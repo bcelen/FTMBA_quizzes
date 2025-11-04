@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 
 st.set_page_config(layout="wide")
 st.title("📊 Weekly Quiz Results Dashboard")
@@ -72,13 +72,12 @@ with col_summ:
     st.markdown("### 📋 Summary")
     st.table(summary_df)
 
-student_mark = None
-adjusted_student_mark = None
-
 with col_rank:
     st.markdown("### 🔍 Find Your Adjusted Mark and Rank")
     student_mark = st.number_input("Enter your original quiz mark", min_value=0.0, max_value=5.0, step=0.01)
-    if student_mark is not None:
+    show_lookup = student_mark != 0.0  # or however you'd like to trigger it
+
+    if show_lookup:
         z = (student_mark - mean_orig) / std_orig
         adjusted_student_mark = round(z * target_std + target_mean, 2)
         student_rank = int(np.sum(adjusted_marks > adjusted_student_mark) + 1)
@@ -94,10 +93,10 @@ fig, ax = plt.subplots(figsize=(12, 5))
 ax.plot(sorted_original, label="Original Marks", marker='o', linestyle='-', color='#2c7bb6')
 ax.plot(sorted_adjusted, label="Adjusted Marks", marker='o', linestyle='--', color='#fdae61')
 
-# Highlight student's marks with horizontal lines
-if student_mark is not None:
-    ax.axhline(y=student_mark, color='#084594', linestyle='-', linewidth=2, label="Your Original Mark")
-    ax.axhline(y=adjusted_student_mark, color='#f46d43', linestyle='--', linewidth=2, label="Your Adjusted Mark")
+if show_lookup:
+    # Horizontal lines for user marks
+    ax.axhline(student_mark, color='#2c7bb6', linestyle=':', linewidth=2, label="Your Original Mark")
+    ax.axhline(adjusted_student_mark, color='#fdae61', linestyle=':', linewidth=2, label="Your Adjusted Mark")
 
 ax.set_ylabel("Mark (0–5)")
 ax.set_xlabel("Student Index")
