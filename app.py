@@ -25,10 +25,10 @@ with col3:
 
 # --- Policy Description ---
 st.markdown("""
-MBS grade policy requires that the mean of the final marks (over 100) be between 74 and 76 (3.70 and 3.80 out of 5) and that the scores corresponding to H1 (4 out of 5) do not exceed 30%.  
+MBS grade policy requires that the mean of the final marks (over 100) be between 74 and 76 (3.70 and 3.80 out of 5) and that the scores corresponding to H1 (4 out of 5) do not exceed 30%.
 The adjustment takes these criteria into account and adjusts marks while preserving the original z-scores.  
 
-⚠️ *Please note that although these distributions are indicative, they may change at the end of the subject because there are some zero marks which may change after the consensus date.*
+⚠️ *Please note that although these distributions are indicative, they may change at the end of the subject because there are some zero marks which may change after the census date.*
 """)
 
 # --- Load Data from GitHub ---
@@ -60,7 +60,7 @@ adjusted_marks = np.clip((z_scores * target_std + target_mean), 0, 5)
 
 # --- Summary Table ---
 summary_df = pd.DataFrame({
-    " ": ["Original", "Adjusted"],
+    " ": ["Original Marks", "Adjusted Marks"],
     "Mean": [f"{mean_orig:.2f}", f"{np.mean(adjusted_marks):.2f}"],
     "Std. Dev": [f"{np.std(original_marks):.2f}", f"{np.std(adjusted_marks):.2f}"],
 })
@@ -69,20 +69,30 @@ summary_df = pd.DataFrame({
 col_summ, col_rank = st.columns(2)
 
 with col_summ:
-    st.markdown("### 📋 Summary")
-    st.table(summary_df)
+    st.subheader("📋 Summary")
+    st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
 with col_rank:
-    st.markdown("### 🔍 Find Your Adjusted Mark and Rank")
-    student_mark = st.number_input("Enter your original quiz mark", min_value=0.0, max_value=5.0, step=0.01)
-    show_lookup = student_mark != 0.0  # or however you'd like to trigger it
+    st.subheader("🔍 Find Your Adjusted Mark and Rank")
+    with st.form("lookup_form"):
+        input_col, result_col = st.columns(2)
+        with input_col:
+            student_mark = st.number_input("Enter your original quiz mark (0–5):", min_value=0.0, max_value=5.0, step=0.01)
+        submitted = st.form_submit_button("Find My Adjusted Mark")
 
-    if show_lookup:
-        z = (student_mark - mean_orig) / std_orig
-        adjusted_student_mark = round(z * target_std + target_mean, 2)
-        student_rank = int(np.sum(adjusted_marks > adjusted_student_mark) + 1)
-        st.write(f"**Your adjusted mark is:** {adjusted_student_mark:.2f}")
-        st.write(f"**Your rank is:** {student_rank} out of {len(adjusted_marks)}")
+        if submitted:
+            student_z = (student_mark - mean_orig) / std_orig
+            adjusted_student_mark = round(np.clip(student_z * target_std + target_mean, 0, 5), 2)
+            epsilon = 1e-6
+            student_rank = int(np.sum(adjusted_marks > adjusted_student_mark + epsilon) + 1)
+            with result_col:
+                st.markdown(f"""
+                **Your adjusted mark is:** `{adjusted_student_mark}`  
+                **Your rank is:** `{student_rank}` out of `{len(adjusted_marks)}` students.
+                """)
+            show_marker = True
+        else:
+            show_marker = False
 
 # --- Visualization ---
 sorted_indices = np.argsort(original_marks)
@@ -90,13 +100,12 @@ sorted_original = original_marks.iloc[sorted_indices].reset_index(drop=True)
 sorted_adjusted = adjusted_marks[sorted_indices]
 
 fig, ax = plt.subplots(figsize=(12, 5))
-ax.plot(sorted_original, label="Original Marks", marker='o', linestyle='-', color='#2c7bb6')
-ax.plot(sorted_adjusted, label="Adjusted Marks", marker='o', linestyle='--', color='#fdae61')
+ax.plot(sorted_original, label="Original Marks", marker='o', linestyle='-', color='#FF6B6B')
+ax.plot(sorted_adjusted, label="Adjusted Marks", marker='o', linestyle='--', color='#4D96FF')
 
-if show_lookup:
-    # Horizontal lines for user marks
-    ax.axhline(student_mark, color='#2c7bb6', linestyle=':', linewidth=2, label="Your Original Mark")
-    ax.axhline(adjusted_student_mark, color='#fdae61', linestyle=':', linewidth=2, label="Your Adjusted Mark")
+if show_marker:
+    ax.axhline(student_mark, color='#FF6B6B', linestyle=':', linewidth=2, label="Your Original Mark")
+    ax.axhline(adjusted_student_mark, color='#4D96FF', linestyle=':', linewidth=2, label="Your Adjusted Mark")
 
 ax.set_ylabel("Mark (0–5)")
 ax.set_xlabel("Student Index")
