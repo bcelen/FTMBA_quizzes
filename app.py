@@ -15,17 +15,22 @@ with col1:
     week_file = f"week{week_option.split()[1]}.csv"
 
 with col2:
-    target_mean = st.slider("🎯 Adjusted Average", min_value=3.7, max_value=3.8, value=3.75, step=0.01,
-                             help="Set the target average of adjusted marks")
+    target_mean = st.slider(
+        "🎯 Adjusted Average",
+        min_value=3.7, max_value=3.8, value=3.75, step=0.01,
+        help="Set the target average of adjusted marks"
+    )
 
 with col3:
-    target_pct_above_4 = st.slider("🔝 Maximum percentage of adjusted marks above 4", min_value=20, max_value=30,
-                                    value=30, step=1,
-                                    help="Maximum allowed percentage of adjusted marks ≥ 4") / 100
+    target_pct_above_4 = st.slider(
+        "🔝 Maximum percentage of adjusted marks above 4",
+        min_value=20, max_value=30, value=30, step=1,
+        help="Maximum allowed percentage of adjusted marks ≥ 4"
+    ) / 100
 
 # --- Policy Description ---
 st.markdown("""
-MBS grade policy requires that the mean of the final marks (over 100) be between 74 and 76 (3.70 and 3.80 out of 5) and that the scores corresponding to H1 (4 out of 5) do not exceed 30%.
+MBS grade policy requires that the mean of the final marks (over 100) be between 74 and 76 (3.70 and 3.80 out of 5) and that the scores corresponding to H1 (4 out of 5) do not exceed 30%.  
 The adjustment takes these criteria into account and adjusts marks while preserving the original z-scores.  
 
 ⚠️ *Please note that although these distributions are indicative, they may change at the end of the subject because there are some zero marks which may change after the census date.*
@@ -72,27 +77,39 @@ with col_summ:
     st.subheader("📋 Summary")
     st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
+show_marker = False
+user_adjusted = None
+rank = None
+total = len(adjusted_marks)
+
 with col_rank:
     st.subheader("🔍 Find Your Adjusted Mark and Rank")
     with st.form("lookup_form"):
         input_col, result_col = st.columns(2)
         with input_col:
-            student_mark = st.number_input("Enter your original quiz mark (0–5):", min_value=0.0, max_value=5.0, step=0.01)
+            student_mark = st.number_input(
+                "Enter your original quiz mark (0–5):",
+                min_value=0.0, max_value=5.0, step=0.01
+            )
         submitted = st.form_submit_button("Find My Adjusted Mark")
 
-        if submitted:
-            student_z = (student_mark - mean_orig) / std_orig
-            adjusted_student_mark = round(np.clip(student_z * target_std + target_mean, 0, 5), 2)
-            epsilon = 1e-6
-            student_rank = int(np.sum(adjusted_marks > adjusted_student_mark + epsilon) + 1)
-            with result_col:
-                st.markdown(f"""
-                **Your adjusted mark is:** `{adjusted_student_mark}`  
-                **Your rank is:** `{student_rank}` out of `{len(adjusted_marks)}` students.
-                """)
-            show_marker = True
-        else:
-            show_marker = False
+    if submitted:
+        student_z = (student_mark - mean_orig) / std_orig
+        adjusted_student_mark = np.clip(student_z * target_std + target_mean, 0, 5)
+
+        # --- Precision-safe rank calculation ---
+        higher_count = np.sum(adjusted_marks > adjusted_student_mark)
+        tie_count = np.sum(np.isclose(adjusted_marks, adjusted_student_mark, rtol=1e-5, atol=1e-8))
+        student_rank = higher_count + 1  # all tied top marks share the same rank (1)
+
+        with result_col:
+            st.markdown(f"""
+            **Your adjusted mark is:** `{adjusted_student_mark:.2f}`  
+            **Your rank is:** `{student_rank}` out of `{len(adjusted_marks)}` students.
+            """)
+        show_marker = True
+    else:
+        show_marker = False
 
 # --- Visualization ---
 sorted_indices = np.argsort(original_marks)
